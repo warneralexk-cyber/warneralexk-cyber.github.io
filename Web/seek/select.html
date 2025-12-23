@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>探索丝路</title>
+	<style>
+		/* 页面基础 */
+		html,body{height:100%;margin:0;font-family:Segoe UI, Roboto, Arial, sans-serif;background:#fafafa}
+		.stage{position:relative;min-height:100vh;overflow:hidden}
+
+		/* A 区：作为底层大区域 */
+		.area-a{
+			background-image: url('../imgs/silkwaycn.png');
+			background-size: cover;
+			background-position: center center;
+			background-repeat: no-repeat;
+			padding:24px;
+			min-height:100vh;
+			box-sizing:border-box;
+		}
+
+		/* 悬浮在 A 中心的定位图标 */
+		.position-icon{
+			position:absolute;
+			left:50%;
+			top:50%;
+			transform:translate(-50%,-50%);
+			z-index:25;
+			width:96px;
+			height:auto;
+			pointer-events:none;
+		}
+
+		/* 跳动动画 */
+		.position-icon.jump { animation: icon-jump 480ms cubic-bezier(.2,.9,.3,1); }
+
+		@keyframes icon-jump {
+			0% { transform: translate(-50%,-50%) scale(1); }
+			30% { transform: translate(-50%,-72%) scale(1.12); }
+			60% { transform: translate(-50%,-44%) scale(0.98); }
+			100% { transform: translate(-50%,-50%) scale(1); }
+		}
+		.area-a .title{font-size:28px;color:#333;margin:8px 0}
+
+		/* B/C/D 悬浮样式（放在 A 之上） */
+		.float-panel{position:absolute;right:40px;background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(20,30,50,0.12);padding:12px;z-index:20}
+
+		/* B 区：顶部右侧较大的悬浮块 */
+		.area-b{width:240px;height:160px;top:40px}
+		.area-b .title{font-size:18px;margin-bottom:8px}
+
+		/* C / D：两个竖直排列的矩形按钮，靠页面右下侧 */
+		.area-c{width:240px;height:56px;bottom:120px;display:flex;align-items:center;justify-content:center}
+		.area-d{width:240px;height:56px;bottom:40px;display:flex;align-items:center;justify-content:center}
+		.rect-btn{display:inline-block;width:100%;height:100%;border-radius:6px;background:#e8eef8;color:#08306b;border:none;cursor:pointer;font-weight:600}
+
+		/* 响应式：窄屏时取消悬浮，按文档流排列 */
+		@media (max-width:760px){
+			.float-panel{position:static;box-shadow:none;margin:12px 0}
+			.area-b,.area-c,.area-d{width:auto;height:auto}
+			.rect-btn{width:auto;height:auto;padding:10px 12px}
+		}
+	</style>
+</head>
+<body>
+	<div class="stage">
+		<!-- A 区：底层大区域 -->
+		<section class="area-a" id="A">
+		</section>
+		<!-- 中央悬浮定位图标 -->
+		<img src="../imgs/position_icon.svg" alt="定位" class="position-icon" aria-hidden="false">
+
+		<!-- B 区：悬浮在右上 -->
+		<aside class="float-panel area-b" id="B" aria-label="B 区">
+			<div class="title">第一站-中国</div>
+			<button class="enter-btn" type="button">进入</button>
+		
+		</aside>
+
+		<!-- C 区：右下上方按钮 -->
+		<div class="float-panel area-c" id="C" aria-label="C 区">
+			<button class="rect-btn" type="button">上一站</button>
+		</div>
+
+		<!-- D 区：右下下方按钮 -->
+		<div class="float-panel area-d" id="D" aria-label="D 区">
+			<button class="rect-btn" type="button">下一站</button>
+		</div>
+	</div>
+
+	<script>
+	// 可扩展的图片+标题数组切换逻辑（循环），切换时同步更新 B 区标题
+	(function(){
+		var areaA = document.getElementById('A');
+		var areaBTitle = document.querySelector('.area-b .title');
+		var prevBtn = document.querySelector('.area-c .rect-btn');
+		var nextBtn = document.querySelector('.area-d .rect-btn');
+		// 在此数组中添加更多图片对象 {src, title}
+		var imgs = [
+			{ src: '../imgs/silkwaycn.png', title: '第一站-中国', link: 'countries/cn.html' },
+			{ src: '../imgs/silkwaymideast.jpg', title: '第二站-中东', link: 'countries/mideast.html' },
+			{ src: '../imgs/silkwayeu.png', title: '第三站-欧洲', link: 'countries/eu.html' }
+		];
+		var idx = 0;
+
+		var firstRun = true;
+		function show(i){
+			if(!areaA) return;
+			idx = (i % imgs.length + imgs.length) % imgs.length; // 保证循环
+			areaA.style.backgroundImage = "url('" + imgs[idx].src + "')";
+			if(areaBTitle) areaBTitle.textContent = imgs[idx].title;
+			// 触发图标跳动（首次初始化不跳）
+			var icon = document.querySelector('.position-icon');
+			if(icon){
+				if(!firstRun){
+					icon.classList.remove('jump');
+					// 强制回流以重启动画
+					void icon.offsetWidth;
+					icon.classList.add('jump');
+				} else {
+					firstRun = false;
+				}
+			}
+		}
+
+		if(nextBtn){
+			nextBtn.addEventListener('click', function(){ show(idx + 1); });
+			nextBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); show(idx + 1); } });
+		}
+
+		if(prevBtn){
+			prevBtn.addEventListener('click', function(){ show(idx - 1); });
+			prevBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); show(idx - 1); } });
+		}
+
+		// 初始化显示第一张及其标题
+		show(0);
+
+		// 绑定进入按钮跳转到当前项的 link
+		var enterBtn = document.querySelector('.area-b .enter-btn');
+		if(enterBtn){
+			enterBtn.addEventListener('click', function(){
+				var link = imgs[idx] && imgs[idx].link;
+				if(link) window.location.href = link;
+			});
+			enterBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); var link = imgs[idx] && imgs[idx].link; if(link) window.location.href = link; } });
+		}
+	})();
+	</script>
+</body>
+</html>
+

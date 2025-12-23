@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>中国</title>
+	<style>
+		:root{--bg:#f7f9fb;--panel:#ffffff;--bar:#e2e8f0}
+		html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg)}
+		.stage{position:relative;min-height:100vh;box-sizing:border-box}
+
+		/* A 区：大底层区域 */
+		/* 让 A 区充满视口，并让 B 以绝对定位悬浮在其上方（视觉不留空且无需滚动即可看到 B） */
+		.area-a{padding:32px 20px 32px 20px; background-image: url('../../imgs/cn_history/cn_song_dynasty.jpg'); background-size: cover; background-position: center center; background-repeat: no-repeat; min-height: 100vh;}
+		.area-a h1{margin:0 0 12px;font-size:28px}
+		.area-a p{margin:0;color:#444}
+
+		/* B 区：悬浮在 A 区下方（覆盖底部） */
+		/* B 区悬浮在 A 区上方，绝对定位不会推动文档流，因此不会产生额外滚动 */
+		.area-b{position:absolute;left:0;right:0;bottom:20px;margin:0 auto;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+		.area-b .panel{width:min(1500px,96%);height:90px;background:var(--panel);border-radius:12px;box-shadow:0 16px 40px rgba(12,18,30,0.14);display:flex;align-items:center;padding:18px 22px;box-sizing:border-box;position:relative}
+
+		/* 悬浮在长条上的定位图标 */
+		.area-b .pos-icon{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:64px;height:auto;cursor:grab;z-index:30;}
+		.area-b .pos-icon:active{cursor:grabbing}
+
+		/* 定位图标上的弹出气泡（白底黑字，放大版） */
+		.area-b .pos-bubble{position:absolute;top:-60px;left:50%;transform:translateX(-50%) scale(0);min-width:160px;padding:10px 14px;background:#ffffff;color:#000000;border-radius:10px;text-align:center;font-size:15px;line-height:1;pointer-events:none;transition:transform 180ms ease,opacity 180ms ease,box-shadow 180ms ease;opacity:0;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+		.area-b .pos-bubble.show{transform:translateX(-50%) scale(1);opacity:1}
+		.area-b .pos-bubble:after{content:'';position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:10px solid #ffffff}
+
+		/* B 内部的长矩形条（分为三段并着色） */
+		.area-b .bar{height:30px;display:flex;gap:8px;flex:1;align-items:center}
+		.area-b .bar .seg{flex:1;height:100%;border-radius:8px}
+		.area-b .bar .bar1{background:#e53935}
+		.area-b .bar .bar2{background:#1e88e5}
+		.area-b .bar .bar3{background:#43a047}
+		/* 保持最左和最右圆角 */
+		.area-b .bar .bar1{border-top-left-radius:8px;border-bottom-left-radius:8px}
+		.area-b .bar .bar3{border-top-right-radius:8px;border-bottom-right-radius:8px}
+
+		/* 响应式：小屏时缩短高度和间距 */
+		@media (max-width:640px){
+			.area-b .panel{height:96px;padding:12px}
+			.area-b .bar{height:44px}
+			.area-b .pos-icon{top:-50px;width:56px}
+			.area-b .pos-bubble{top:-50px;min-width:120px;font-size:14px;padding:8px 12px}
+			.area-a{min-height:100vh;padding-bottom:24px}
+		}
+	</style>
+</head>
+<body>
+	<div class="stage">
+		<main class="area-a" id="A">
+		</main>
+
+		<div class="area-b" id="B" aria-label="B 区">
+			<div class="panel">
+				<img src="../../imgs/position_icon.svg" alt="定位图标" class="pos-icon" draggable="false" aria-hidden="false">
+				<div class="pos-bubble" aria-hidden="true"></div>
+				<div class="bar" aria-hidden="true">
+					<div class="seg bar1"></div>
+					<div class="seg bar2"></div>
+					<div class="seg bar3"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	(function(){
+		var panel = document.querySelector('.area-b .panel');
+		var icon = panel && panel.querySelector('.pos-icon');
+		if(!panel || !icon) return;
+
+		var dragging = false;
+		var panelRect = null;
+		var minX = 0, maxX = 0;
+
+		function updateBounds(){
+			panelRect = panel.getBoundingClientRect();
+			var iconW = icon.getBoundingClientRect().width || icon.offsetWidth || 64;
+			var panelInnerW = panel.clientWidth;
+			minX = iconW/2;
+			maxX = panelInnerW - iconW/2;
+		}
+
+		function setIconCenter(centerX){
+			var x = Math.min(Math.max(centerX, minX), maxX);
+			icon.style.left = x + 'px';
+			icon.style.transform = 'translateX(-50%)';
+		}
+
+		function pointerClientX(e){
+			if(e.touches && e.touches.length) return e.touches[0].clientX;
+			return e.clientX;
+		}
+
+			var lastClientX = 0;
+			var bubble = panel.querySelector('.pos-bubble');
+			var bubbleTimeout = null;
+
+			function showBubble(text){
+				if(!bubble) return;
+				updateBounds();
+				bubble.textContent = text;
+				var iconRect = icon.getBoundingClientRect();
+				var center = (iconRect.left - panelRect.left) + iconRect.width/2;
+				bubble.style.left = center + 'px';
+				bubble.classList.add('show');
+				if(bubbleTimeout) clearTimeout(bubbleTimeout);
+				bubbleTimeout = setTimeout(function(){ bubble.classList.remove('show'); bubbleTimeout = null; }, 2000);
+			}
+		function onDown(e){
+			e.preventDefault();
+			updateBounds();
+			dragging = true;
+			lastClientX = pointerClientX(e);
+			document.addEventListener('mousemove', onMove);
+			document.addEventListener('mouseup', onUp);
+			document.addEventListener('touchmove', onMove, {passive:false});
+			document.addEventListener('touchend', onUp);
+		}
+
+		function onMove(e){
+			if(!dragging) return;
+			e.preventDefault();
+			var clientX = pointerClientX(e);
+			lastClientX = clientX;
+			var center = clientX - panelRect.left;
+			setIconCenter(center);
+		}
+
+		function onUp(){
+			dragging = false;
+			document.removeEventListener('mousemove', onMove);
+			document.removeEventListener('mouseup', onUp);
+			document.removeEventListener('touchmove', onMove);
+			document.removeEventListener('touchend', onUp);
+				// 根据放开时位于 bar 的哪一段（0,1,2）切换对应朝代图片：qin/song/ming
+			try{
+				var barEl = panel.querySelector('.bar');
+				if(barEl){
+					var barRect = barEl.getBoundingClientRect();
+					var centerOnBar = lastClientX - barRect.left; // 相对于 bar 左侧的位置
+					if(centerOnBar >= 0 && centerOnBar <= barRect.width){
+						var segWidth = barRect.width / 3;
+						var segIndex = Math.floor(centerOnBar / segWidth); // 0,1,2
+						var imgsMap = [
+							'../../imgs/cn_history/cn_qin_dynasty.jpg',
+							'../../imgs/cn_history/cn_song_dynasty.jpg',
+							'../../imgs/cn_history/cn_ming_dynasty.jpg'
+						];
+						var aEl = document.getElementById('A');
+						if(aEl && segIndex >= 0 && segIndex < imgsMap.length){
+							aEl.style.backgroundImage = "url('" + imgsMap[segIndex] + "')";
+								// 显示对应朝代文字气泡
+								var labels = ['中国—秦朝','中国—宋朝','中国—明朝'];
+								if(typeof showBubble === 'function') showBubble(labels[segIndex] || '中国');
+							}
+					}
+				}
+			}catch(err){console.error(err)}
+		}
+
+		icon.addEventListener('mousedown', onDown);
+		icon.addEventListener('touchstart', function(e){ e.preventDefault(); onDown(e); }, {passive:false});
+
+		window.addEventListener('resize', function(){ updateBounds(); });
+		// initialize center after resources loaded
+		window.addEventListener('load', function(){ updateBounds(); setIconCenter(panel.clientWidth/2); if(typeof showBubble === 'function') showBubble('中国—宋朝'); });
+
+	})();
+	</script>
+</body>
+</html>
+
